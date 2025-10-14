@@ -1,0 +1,28 @@
+# Testing framework dependencies
+pytest==7.4.3
+pytest-html==4.1.1
+pytest-xdist==3.3.1
+pytest-timeout==2.2.0
+pytest-cov==4.1.0
+
+# Allure reporting
+allure-pytest==2.13.0
+allure-python-commons==2.13.0
+
+# HTTP client for API testing
+requests==2.32.3
+
+# Data validation and serialization
+pydantic>=2.5.0,<3.0.0
+email-validator==2.1.0
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Optional: For advanced test data generation
+faker==20.1.0
+
+# Optional: For database testing (if needed later)
+# sqlalchemy==2.0.23
+# pytest-postgresql==5.0.0

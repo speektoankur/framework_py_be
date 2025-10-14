@@ -1,0 +1,201 @@
+name: 🧪 Test Execution & Allure Report
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+    types: [ closed ]
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: 📦 Install Main Dependencies
+      run: |
+        echo "🔧 Installing main application dependencies..."
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        echo "✅ Main dependencies installed successfully"
+
+    - name: 📦 Install Test Dependencies
+      run: |
+        echo "🧪 Installing test framework dependencies..."
+        pip install -r test/requirements.txt
+        echo "✅ Test dependencies installed successfully"
+
+    - name: 📦 Install Allure
+      run: |
+        echo "📊 Installing Allure reporting tool..."
+        # Install Allure using npm (most reliable method)
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        sudo npm install -g allure-commandline
+        echo "✅ Allure installed successfully"
+
+    - name: 🚀 Start FastAPI Service
+      run: |
+        echo "🚀 Starting FastAPI service..."
+        cd /home/runner/work/framework_py_be/framework_py_be
+        python main.py &
+        SERVICE_PID=$!
+        echo "SERVICE_PID=$SERVICE_PID" >> $GITHUB_ENV
+        echo "⏳ Waiting for service to start..."
+        sleep 10
+        
+        # Health check with retry mechanism
+        for i in {1..30}; do
+          echo "🔍 Health check attempt $i/30..."
+          if curl -f http://localhost:8000/health; then
+            echo "✅ Service is healthy and ready!"
+            break
+          else
+            echo "⏳ Service not ready yet, waiting..."
+            sleep 2
+          fi
+          
+          if [ $i -eq 30 ]; then
+            echo "❌ Service failed to start after 60 seconds"
+            exit 1
+          fi
+        done
+
+    - name: 🧪 Run Tests
+      run: |
+        echo "🧪 Starting test execution..."
+        cd /home/runner/work/framework_py_be/framework_py_be
+        
+        # Create logs directory
+        mkdir -p test/logs
+        
+        # Run tests with detailed logging
+        python test/run_tests.py --env=localhost --type=all --no-report 2>&1 | tee test/logs/github_actions_test_execution.log
+        
+        # Check test exit code
+        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        echo "TEST_EXIT_CODE=$TEST_EXIT_CODE" >> $GITHUB_ENV
+        
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
+          echo "✅ All tests passed successfully!"
+        else
+          echo "❌ Some tests failed!"
+        fi
+
+    - name: 📊 Generate Allure Report
+      if: always()
+      run: |
+        echo "📊 Generating Allure report..."
+        cd /home/runner/work/framework_py_be/framework_py_be
+        
+        # Generate Allure report
+        allure generate test/reports/allure-results -o test/reports/allure-report --clean
+        
+        if [ -d "test/reports/allure-report" ]; then
+          echo "✅ Allure report generated successfully!"
+          echo "📁 Report location: test/reports/allure-report/"
+        else
+          echo "⚠️ Allure report generation failed"
+        fi
+
+    - name: 📋 Test Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "📋 TEST EXECUTION SUMMARY"
+        echo "=========================================="
+        echo "🕐 Execution Time: $(date)"
+        echo "🌍 Environment: localhost"
+        echo "🧪 Test Type: all"
+        echo "📊 Test Status: ${{ env.TEST_EXIT_CODE == '0' && '✅ PASSED' || '❌ FAILED' }}"
+        echo ""
+        
+        # Count test results if available
+        if [ -d "test/reports/allure-results" ]; then
+          TOTAL_TESTS=$(find test/reports/allure-results -name "*.json" | wc -l)
+          echo "📈 Total Test Cases: $TOTAL_TESTS"
+        fi
+        
+        # Show recent test logs
+        if [ -f "test/logs/github_actions_test_execution.log" ]; then
+          echo ""
+          echo "📝 Recent Test Logs:"
+          echo "----------------------------------------"
+          tail -20 test/logs/github_actions_test_execution.log
+        fi
+        
+        echo "=========================================="
+
+    - name: 🛑 Stop Service
+      if: always()
+      run: |
+        echo "🛑 Stopping FastAPI service..."
+        if [ ! -z "$SERVICE_PID" ]; then
+          kill $SERVICE_PID 2>/dev/null || true
+          echo "✅ Service stopped"
+        fi
+
+    - name: 📤 Upload Test Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-${{ github.run_number }}
+        path: |
+          test/logs/
+          test/reports/pytest_report.html
+        retention-days: 30
+
+    - name: 📤 Upload Allure Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-report-${{ github.run_number }}
+        path: test/reports/allure-report/
+        retention-days: 30
+
+    - name: 📤 Upload Allure Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-results-${{ github.run_number }}
+        path: test/reports/allure-results/
+        retention-days: 30
+
+    - name: 🚨 Test Results Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "🎯 FINAL TEST RESULTS"
+        echo "=========================================="
+        echo "🔗 Workflow: ${{ github.workflow }}"
+        echo "📝 Run ID: ${{ github.run_id }}"
+        echo "🌿 Branch: ${{ github.ref_name }}"
+        echo "👤 Actor: ${{ github.actor }}"
+        echo "📅 Commit: ${{ github.sha }}"
+        echo ""
+        echo "📊 Test Status: ${{ env.TEST_EXIT_CODE == '0' && '✅ ALL TESTS PASSED' || '❌ SOME TESTS FAILED' }}"
+        echo ""
+        echo "📦 Artifacts Generated:"
+        echo "  • Test Logs: test-logs-${{ github.run_number }}"
+        echo "  • Allure Report: allure-report-${{ github.run_number }}"
+        echo "  • Allure Results: allure-results-${{ github.run_number }}"
+        echo ""
+        echo "💡 Download artifacts from the Actions tab to view detailed reports"
+        echo "=========================================="
+
+    - name: ❌ Fail on Test Failure
+      if: env.TEST_EXIT_CODE != '0'
+      run: |
+        echo "❌ Tests failed! Check the logs above for details."
+        exit 1

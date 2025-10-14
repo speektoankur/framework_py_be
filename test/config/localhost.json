@@ -1,0 +1,62 @@
+{
+  "environment": "localhost",
+  "base_url": "http://localhost:8000",
+  "timeout": 30,
+  "retry_count": 3,
+  "test_data": {
+    "valid_users": [
+      {
+        "username": "testuser1",
+        "email": "testuser1@example.com",
+        "password": "password123"
+      },
+      {
+        "username": "testuser2",
+        "email": "testuser2@example.com",
+        "password": "password456"
+      }
+    ],
+    "invalid_users": [
+      {
+        "username": "",
+        "email": "invalid@example.com",
+        "password": "password123",
+        "expected_error": "Username is required"
+      },
+      {
+        "username": "testuser",
+        "email": "invalid-email",
+        "password": "password123",
+        "expected_error": "Invalid email format"
+      }
+    ],
+    "existing_users": [
+      {
+        "id": 1,
+        "username": "test",
+        "email": "t@x.com"
+      },
+      {
+        "id": 2,
+        "username": "john_doe",
+        "email": "john@example.com"
+      }
+    ],
+    "pagination": {
+      "default_page": 1,
+      "default_size": 10,
+      "max_size": 100
+    },
+    "search_keywords": [
+      "test",
+      "john",
+      "admin",
+      "nonexistent"
+    ]
+  },
+  "api_endpoints": {
+    "users": "/api/v1/users",
+    "health": "/health"
+  }
+}
+

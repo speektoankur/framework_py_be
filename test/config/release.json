@@ -1,0 +1,62 @@
+{
+  "environment": "release",
+  "base_url": "https://api.example.com",
+  "timeout": 60,
+  "retry_count": 5,
+  "test_data": {
+    "valid_users": [
+      {
+        "username": "releaseuser1",
+        "email": "releaseuser1@example.com",
+        "password": "securepassword123"
+      },
+      {
+        "username": "releaseuser2",
+        "email": "releaseuser2@example.com",
+        "password": "securepassword456"
+      }
+    ],
+    "invalid_users": [
+      {
+        "username": "",
+        "email": "invalid@example.com",
+        "password": "password123",
+        "expected_error": "Username is required"
+      },
+      {
+        "username": "testuser",
+        "email": "invalid-email",
+        "password": "password123",
+        "expected_error": "Invalid email format"
+      }
+    ],
+    "existing_users": [
+      {
+        "id": 1,
+        "username": "prod_user1",
+        "email": "prod1@example.com"
+      },
+      {
+        "id": 2,
+        "username": "prod_user2",
+        "email": "prod2@example.com"
+      }
+    ],
+    "pagination": {
+      "default_page": 1,
+      "default_size": 10,
+      "max_size": 100
+    },
+    "search_keywords": [
+      "prod",
+      "user",
+      "admin",
+      "nonexistent"
+    ]
+  },
+  "api_endpoints": {
+    "users": "/api/v1/users",
+    "health": "/health"
+  }
+}
+
