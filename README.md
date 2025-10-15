@@ -11,6 +11,13 @@ This project showcases a complete **Backend Testing Framework** implementation f
 - **API Automation** with custom assertions and data builders
 - **Advanced Reporting** with interactive HTML reports
 
+## High Level Flow Visualization 
+<img width="1273" height="294" alt="Screenshot 2025-10-15 at 11 05 30 PM" src="https://github.com/user-attachments/assets/59735d20-ecf0-420f-8964-4866b300be5f" />
+
+## Test Report View
+<img width="1498" height="787" alt="Screenshot 2025-10-15 at 11 12 00 PM" src="https://github.com/user-attachments/assets/af517641-c73c-434c-9239-1bad47e035c2" />
+<img width="755" height="393" alt="Screenshot 2025-10-15 at 11 13 10 PM" src="https://github.com/user-attachments/assets/76142038-59ac-41bb-b33b-ff8fddd1fda2" />
+
 ## 🏗️ Project Architecture
 
 ```
