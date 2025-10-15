@@ -1,6 +1,6 @@
 import random
 import string
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 class UserDataBuilder:
@@ -18,7 +18,7 @@ class UserDataBuilder:
         return f"{username}@{domain}"
     
     @staticmethod
-    def build_valid_user(username: str = None, email: str = None, password: str = None) -> Dict[str, str]:
+    def build_valid_user(username: Optional[str] = None, email: Optional[str] = None, password: Optional[str] = None) -> Dict[str, str]:
         """
         Build valid user data
         

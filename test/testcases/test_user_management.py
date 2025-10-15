@@ -3,6 +3,12 @@ import allure
 from typing import Dict, Any
 
 from common.data_builder import UserDataBuilder, test_data_manager
+from common.models import (
+    CreateUserRequestModel,
+    UpdateUserRequestModel,
+    ApiResponseModel,
+    UserListResponseModel,
+)
 from common.logger import test_logger
 
 @allure.epic("User Management API")
@@ -18,11 +24,8 @@ class TestUserManagement:
         test_logger.info("Testing create user with valid data")
         
         # Create user
-        response = user_api.create_user(
-            username=valid_user_data["username"],
-            email=valid_user_data["email"],
-            password=valid_user_data["password"]
-        )
+        request_model = CreateUserRequestModel(**valid_user_data)
+        response = user_api.create_user(payload=request_model)
         
         # Assertions
         assertions.assert_status_code(response["status_code"], 200, "Create user should return 200")
@@ -30,7 +33,12 @@ class TestUserManagement:
         assertions.assert_response_message(response["response"]["msg"], "success", "Response message should be success")
         
         # Verify user data in response
-        user_data = response["response"]["data"]
+        # Prefer model when available
+        if "response_model" in response:
+            model: ApiResponseModel = response["response_model"]
+            user_data = model.data  # type: ignore[assignment]
+        else:
+            user_data = response["response"]["data"]
         assertions.assert_user_data(user_data, ["id", "username"], "User data should contain id and username")
         assertions.assert_field_value(user_data["username"], valid_user_data["username"], "username")
         assertions.assert_not_empty(user_data["id"], "user_id")
@@ -49,10 +57,11 @@ class TestUserManagement:
         test_logger.info(f"Testing create user with invalid data: {invalid_data}")
         
         # Create user with invalid data
+        # For invalid data we bypass local model validation when needed
         response = user_api.create_user(
             username=invalid_data["username"],
             email=invalid_data["email"],
-            password=invalid_data["password"]
+            password=invalid_data["password"],
         )
         
         # Assertions
@@ -97,7 +106,11 @@ class TestUserManagement:
         assertions.assert_response_message(response["response"]["msg"], "success", "Response message should be success")
         
         # Verify user data
-        user_data = response["response"]["data"]
+        if "response_model" in response:
+            model: ApiResponseModel = response["response_model"]
+            user_data = model.data  # type: ignore[assignment]
+        else:
+            user_data = response["response"]["data"]
         assertions.assert_user_data(user_data, ["id", "username", "email"], "User data should contain all fields")
         assertions.assert_field_value(user_data["id"], existing_user_data["id"], "user_id")
         assertions.assert_field_value(user_data["username"], existing_user_data["username"], "username")
@@ -130,7 +143,8 @@ class TestUserManagement:
         
         # Update user email
         new_email = "updated@example.com"
-        response = user_api.update_user_email(existing_user_data["id"], new_email)
+        update_model = UpdateUserRequestModel(email=new_email)
+        response = user_api.update_user_email(existing_user_data["id"], payload=update_model)
         
         # Assertions
         assertions.assert_status_code(response["status_code"], 200, "Update user should return 200")
@@ -140,7 +154,11 @@ class TestUserManagement:
         
         # Verify email was updated by getting user details
         get_response = user_api.get_user(existing_user_data["id"])
-        updated_user_data = get_response["response"]["data"]
+        if "response_model" in get_response:
+            model = get_response["response_model"]
+            updated_user_data = model.data  # type: ignore[assignment]
+        else:
+            updated_user_data = get_response["response"]["data"]
         assertions.assert_field_value(updated_user_data["email"], new_email, "email", "Email should be updated")
         
         test_logger.info("User email updated successfully")
@@ -226,7 +244,11 @@ class TestUserManagement:
         assertions.assert_response_message(response["response"]["msg"], "success", "Response message should be success")
         
         # Verify list structure
-        list_data = response["response"]["data"]
+        if "response_model" in response:
+            model: UserListResponseModel = response["response_model"]
+            list_data = model.data.model_dump()
+        else:
+            list_data = response["response"]["data"]
         assertions.assert_user_list_structure(list_data, "User list should have proper structure")
         assertions.assert_not_empty(list_data["total"], "total", "Total should not be empty")
         
@@ -251,7 +273,11 @@ class TestUserManagement:
         assertions.assert_response_code(response["response"]["code"], 200, "Response code should be 200")
         
         # Verify pagination
-        list_data = response["response"]["data"]
+        if "response_model" in response:
+            model: UserListResponseModel = response["response_model"]
+            list_data = model.data.model_dump()
+        else:
+            list_data = response["response"]["data"]
         assertions.assert_user_list_structure(list_data, "User list should have proper structure")
         assertions.assert_pagination(
             list_data["total"],
@@ -279,7 +305,11 @@ class TestUserManagement:
         assertions.assert_response_code(response["response"]["code"], 200, "Response code should be 200")
         
         # Verify search results
-        list_data = response["response"]["data"]
+        if "response_model" in response:
+            model: UserListResponseModel = response["response_model"]
+            list_data = model.data.model_dump()
+        else:
+            list_data = response["response"]["data"]
         assertions.assert_user_list_structure(list_data, "Search results should have proper structure")
         
         # If we expect results, verify they contain the keyword

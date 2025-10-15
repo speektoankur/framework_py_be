@@ -1,6 +1,12 @@
 import requests
-from typing import Dict, Any, Optional
-import json
+from typing import Dict, Any, Optional, Union
+from pydantic import ValidationError
+from common.models import (
+    CreateUserRequestModel,
+    UpdateUserRequestModel,
+    ApiResponseModel,
+    UserListResponseModel,
+)
 
 class UserAPI:
     """API encapsulation layer for User Management endpoints"""
@@ -13,7 +19,7 @@ class UserAPI:
             'Accept': 'application/json'
         })
     
-    def create_user(self, username: str, email: str, password: str) -> Dict[str, Any]:
+    def create_user(self, username: Optional[str] = None, email: Optional[str] = None, password: Optional[str] = None, payload: Optional[CreateUserRequestModel] = None) -> Dict[str, Any]:
         """
         Create a new user
         
@@ -26,18 +32,25 @@ class UserAPI:
             API response as dictionary
         """
         url = f"{self.base_url}/api/v1/users"
-        payload = {
-            "username": username,
-            "email": email,
-            "password": password
-        }
+        if payload is None:
+            # Build via pydantic for validation on the client side too
+            payload = CreateUserRequestModel(username=username or "", email=email or "", password=password or "")
+        elif not isinstance(payload, CreateUserRequestModel):
+            payload = CreateUserRequestModel(**payload)  # type: ignore[arg-type]
         
-        response = self.session.post(url, json=payload)
-        return {
+        response = self.session.post(url, json=payload.dict())
+        parsed: Dict[str, Any] = {
             "status_code": response.status_code,
-            "response": response.json() if response.content else {},
             "headers": dict(response.headers)
         }
+        try:
+            body = response.json() if response.content else {}
+            parsed_model = ApiResponseModel.model_validate(body)
+            parsed["response_model"] = parsed_model
+            parsed["response"] = body
+        except Exception:
+            parsed["response"] = {}
+        return parsed
     
     def get_user(self, user_id: int) -> Dict[str, Any]:
         """
@@ -58,7 +71,7 @@ class UserAPI:
             "headers": dict(response.headers)
         }
     
-    def update_user_email(self, user_id: int, email: str) -> Dict[str, Any]:
+    def update_user_email(self, user_id: int, email: Optional[str] = None, payload: Optional[UpdateUserRequestModel] = None) -> Dict[str, Any]:
         """
         Update user's email address
         
@@ -70,14 +83,24 @@ class UserAPI:
             API response as dictionary
         """
         url = f"{self.base_url}/api/v1/users/{user_id}"
-        payload = {"email": email}
+        if payload is None:
+            payload = UpdateUserRequestModel(email=email or "")
+        elif not isinstance(payload, UpdateUserRequestModel):
+            payload = UpdateUserRequestModel(**payload)  # type: ignore[arg-type]
         
-        response = self.session.put(url, json=payload)
-        return {
+        response = self.session.put(url, json=payload.model_dump())
+        parsed: Dict[str, Any] = {
             "status_code": response.status_code,
-            "response": response.json() if response.content else {},
             "headers": dict(response.headers)
         }
+        try:
+            body = response.json() if response.content else {}
+            parsed_model = ApiResponseModel.model_validate(body)
+            parsed["response_model"] = parsed_model
+            parsed["response"] = body
+        except Exception:
+            parsed["response"] = {}
+        return parsed
     
     def delete_user(self, user_id: int) -> Dict[str, Any]:
         """
@@ -92,11 +115,18 @@ class UserAPI:
         url = f"{self.base_url}/api/v1/users/{user_id}"
         
         response = self.session.delete(url)
-        return {
+        parsed: Dict[str, Any] = {
             "status_code": response.status_code,
-            "response": response.json() if response.content else {},
             "headers": dict(response.headers)
         }
+        try:
+            body = response.json() if response.content else {}
+            parsed_model = ApiResponseModel.model_validate(body)
+            parsed["response_model"] = parsed_model
+            parsed["response"] = body
+        except Exception:
+            parsed["response"] = {}
+        return parsed
     
     def get_users_list(self, page: int = 1, size: int = 10, keyword: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -117,11 +147,18 @@ class UserAPI:
             params["keyword"] = keyword
         
         response = self.session.get(url, params=params)
-        return {
+        parsed: Dict[str, Any] = {
             "status_code": response.status_code,
-            "response": response.json() if response.content else {},
             "headers": dict(response.headers)
         }
+        try:
+            body = response.json() if response.content else {}
+            parsed_model = UserListResponseModel.model_validate(body)
+            parsed["response_model"] = parsed_model
+            parsed["response"] = body
+        except Exception:
+            parsed["response"] = {}
+        return parsed
     
     def health_check(self) -> Dict[str, Any]:
         """

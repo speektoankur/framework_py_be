@@ -1,6 +1,5 @@
-from typing import List, Optional, Dict, Any
-from models import User, UserData, UserListData, ResponseCode
-import uuid
+from typing import Optional, Dict
+from models import User, UserData, UserListData
 
 class UserService:
     def __init__(self):

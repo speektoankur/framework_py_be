@@ -16,6 +16,7 @@ sys.path.insert(0, str(test_dir))
 
 from allure_config import allure_config
 from common.config_reader import config_reader
+from common.logger import test_logger
 
 def run_tests(environment: str = "localhost", test_type: str = "all", generate_report: bool = True):
     """
@@ -27,9 +28,9 @@ def run_tests(environment: str = "localhost", test_type: str = "all", generate_r
         generate_report: Whether to generate Allure report
     """
     
-    print(f"🚀 Starting test execution for environment: {environment}")
-    print(f"📋 Test type: {test_type}")
-    print(f"📊 Generate report: {generate_report}")
+    test_logger.info(f"Starting test execution for environment: {environment}")
+    test_logger.info(f"Test type: {test_type}")
+    test_logger.info(f"Generate report: {generate_report}")
     
     # Setup Allure configuration
     try:
@@ -41,9 +42,9 @@ def run_tests(environment: str = "localhost", test_type: str = "all", generate_r
         allure_config.create_categories_file()
         allure_config.create_executor_file(environment)
         
-        print("✅ Allure configuration created successfully")
+        test_logger.info("Allure configuration created successfully")
     except Exception as e:
-        print(f"⚠️  Warning: Could not setup Allure config: {e}")
+        test_logger.warning(f"Warning: Could not setup Allure config: {e}")
     
     # Build pytest command
     cmd = [
@@ -66,25 +67,25 @@ def run_tests(environment: str = "localhost", test_type: str = "all", generate_r
     # Add HTML report
     cmd.extend(["--html=test/reports/pytest_report.html", "--self-contained-html"])
     
-    print(f"🔧 Running command: {' '.join(cmd)}")
+    test_logger.info(f"Running command: {' '.join(cmd)}")
     
     # Run tests
     try:
         result = subprocess.run(cmd, cwd=test_dir.parent, capture_output=False)
         
         if result.returncode == 0:
-            print("✅ All tests passed!")
+            test_logger.info("All tests passed")
         else:
-            print("❌ Some tests failed!")
+            test_logger.error("Some tests failed")
             
     except Exception as e:
-        print(f"💥 Error running tests: {e}")
+        test_logger.error(f"Error running tests: {e}")
         return False
     
     # Generate Allure report
     if generate_report:
         try:
-            print("📊 Generating Allure report...")
+            test_logger.info("Generating Allure report...")
             allure_cmd = [
                 "allure", "generate", 
                 "test/reports/allure-results", 
@@ -93,26 +94,26 @@ def run_tests(environment: str = "localhost", test_type: str = "all", generate_r
             ]
             
             subprocess.run(allure_cmd, cwd=test_dir.parent, check=True)
-            print("✅ Allure report generated successfully!")
-            print(f"📁 Report location: {test_dir}/reports/allure-report/index.html")
+            test_logger.info("Allure report generated successfully")
+            test_logger.info(f"Report location: {test_dir}/reports/allure-report/index.html")
             
             # Try to open report in browser (optional)
             try:
                 allure_serve_cmd = ["allure", "open", "test/reports/allure-report"]
-                print("🌐 Opening Allure report in browser...")
+                test_logger.info("Opening Allure report in browser...")
                 subprocess.Popen(allure_serve_cmd, cwd=test_dir.parent)
             except Exception as e:
-                print(f"⚠️  Could not open report in browser: {e}")
+                test_logger.warning(f"Could not open report in browser: {e}")
                 
         except subprocess.CalledProcessError as e:
-            print(f"❌ Error generating Allure report: {e}")
-            print("💡 Make sure Allure is installed: brew install allure (macOS) or download from https://github.com/allure-framework/allure2/releases")
+            test_logger.error(f"Error generating Allure report: {e}")
+            test_logger.info("Make sure Allure is installed: brew install allure (macOS) or download from https://github.com/allure-framework/allure2/releases")
         except FileNotFoundError:
-            print("❌ Allure command not found")
-            print("💡 Install Allure: brew install allure (macOS) or download from https://github.com/allure-framework/allure2/releases")
-            print("📊 Allure results are available in test/reports/allure-results/ for manual report generation")
+            test_logger.error("Allure command not found")
+            test_logger.info("Install Allure: brew install allure (macOS) or download from https://github.com/allure-framework/allure2/releases")
+            test_logger.info("Allure results are available in test/reports/allure-results/ for manual report generation")
         except Exception as e:
-            print(f"❌ Unexpected error generating report: {e}")
+            test_logger.error(f"Unexpected error generating report: {e}")
     
     return result.returncode == 0
 
@@ -151,11 +152,11 @@ def main():
     if args.list_envs:
         try:
             envs = config_reader.get_all_environments()
-            print("Available environments:")
+            test_logger.info("Available environments:")
             for env in envs:
-                print(f"  - {env}")
+                test_logger.info(f"  - {env}")
         except Exception as e:
-            print(f"Error listing environments: {e}")
+            test_logger.error(f"Error listing environments: {e}")
         return
     
     # Run tests
